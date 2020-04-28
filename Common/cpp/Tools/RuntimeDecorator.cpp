@@ -10,7 +10,7 @@
 #include <memory>
 #include "Logger.h"
 
-void RuntimeDecorator::addNativeObjects(jsi::Runtime &rt) {
+void RuntimeDecorator::addNativeObjects(jsi::Runtime &rt, UpdaterFunction updater) {
   auto callback = [](
       jsi::Runtime &rt,
       const jsi::Value &thisValue,
@@ -31,4 +31,20 @@ void RuntimeDecorator::addNativeObjects(jsi::Runtime &rt) {
     };
   jsi::Value log = jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "_log"), 1, callback);
 	rt.global().setProperty(rt, "_log", log);
+
+
+  auto clb = [updater](
+      jsi::Runtime &rt,
+      const jsi::Value &thisValue,
+      const jsi::Value *args,
+      size_t count
+      ) -> jsi::Value {
+    const auto viewTag = args[0].asNumber();
+    const auto params = args[1].asObject(rt);
+    updater(rt, viewTag, params);
+    return jsi::Value::undefined();
+  };
+  jsi::Value updateProps = jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "_updateProps"), 2, clb);
+  rt.global().setProperty(rt, "_updateProps", updateProps);
+
 }

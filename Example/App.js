@@ -18,7 +18,7 @@ import SpeedTest from './testComponents/SpeedTest';
 import TwoHandlersTest from './testComponents/TwoHandlersTest';
 import CleanupTest from './testComponents/CleanUpTest';
 import SharedFunctionTest from './testComponents/SharedFunctionTest';
-import WorkletsTest from './testComponents/WorkletsTest'
+import WorkletsTest from './testComponents/WorkletsTest';
 import SharedArraySharedObject from './testComponents/SharedArraySharedObject';
 import SzymonRotationScreen from './testComponents/SzymonRotationScreen';
 import SzymonRotationWithReset from './testComponents/SzymonRotationWithReset';
@@ -34,27 +34,27 @@ import LiquidSwipe from './LiquidSwipe/index';
 
 // set components here:
 const components = {
-  'LiquidSwipe': LiquidSwipe,
+  LiquidSwipe: LiquidSwipe,
   '3D Menu': Menu,
-  'WithWorklet': WithWorklet,
-  'DragTest': DragTest,
-  'MapperTest': MapperTest,
-  'MapperTest2': MapperTest2,
-  'UseAnimatedStyle': UseAnimatedStyleTest,
-  'SharedValueTest': SharedValueTest,
-  'NotifyTest': NotifyTest,
-  'SpeedTest': SpeedTest,
-  'TwoHandlersTest': TwoHandlersTest,
-  'CleanupTest': CleanupTest,
-  'SharedFunctionTest': SharedFunctionTest,
-  'WorkletsTest': WorkletsTest,
-  'SharedArraySharedObj': SharedArraySharedObject,
-  'SzymonRotation': SzymonRotationScreen,
-  'SzymonRotationWithReset': SzymonRotationWithReset,
-  'SzymonStartStop': SzymonStartStopScreen,
-  'WorkletFailureTest': WorkletFailureTest,
-  'FunctionInstallTest': FunctionInstallTest,
-}
+  WithWorklet: WithWorklet,
+  DragTest: DragTest,
+  MapperTest: MapperTest,
+  MapperTest2: MapperTest2,
+  UseAnimatedStyle: UseAnimatedStyleTest,
+  SharedValueTest: SharedValueTest,
+  NotifyTest: NotifyTest,
+  SpeedTest: SpeedTest,
+  TwoHandlersTest: TwoHandlersTest,
+  CleanupTest: CleanupTest,
+  SharedFunctionTest: SharedFunctionTest,
+  WorkletsTest: WorkletsTest,
+  SharedArraySharedObj: SharedArraySharedObject,
+  SzymonRotation: SzymonRotationScreen,
+  SzymonRotationWithReset: SzymonRotationWithReset,
+  SzymonStartStop: SzymonStartStopScreen,
+  WorkletFailureTest: WorkletFailureTest,
+  FunctionInstallTest: FunctionInstallTest,
+};
 
 YellowBox.ignoreWarnings([
   'Warning: isMounted(...) is deprecated',
@@ -73,15 +73,18 @@ class MainScreen extends React.Component {
       <View>
         <Text>Pick the screen:</Text>
         <ScrollView>
-        {
-          Object.keys(components).map(item => {
+          {Object.keys(components).map(item => {
             return (
-              <View style={ { margin: 10 } } key={ item }>
-                <Button title={ item } onPress={ () => { this.props.navigation.navigate(item) } } />
+              <View style={{ margin: 10 }} key={item}>
+                <Button
+                  title={item}
+                  onPress={() => {
+                    this.props.navigation.navigate(item);
+                  }}
+                />
               </View>
-              )
-          })
-        }
+            );
+          })}
         </ScrollView>
       </View>
     );
@@ -112,4 +115,5 @@ const createApp = Platform.select({
   default: input => createAppContainer(input),
 });
 
-export default createApp(ExampleApp);
+export default SzymonStartStopScreen;
+// export default createApp(ExampleApp);

@@ -1,5 +1,6 @@
 // @refresh reset
-import { useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useRef, useLayoutEffect, memo } from 'react';
+import { View, findNodeHandle } from 'react-native';
 import SharedValue from './SharedValue';
 import Worklet from './Worklet';
 import WorkletEventHandler from './WorkletEventHandler';
@@ -10,9 +11,9 @@ function isShareable(obj) {
     return true;
   }
 
-  // We don't wrap array in SharedValue because we cannot override [] operator. 
+  // We don't wrap array in SharedValue because we cannot override [] operator.
   // We add propery instead
-  if (Array.isArray(obj)) { 
+  if (Array.isArray(obj)) {
     if (obj.sharedArray) {
       return true;
     }
@@ -26,7 +27,7 @@ function isShareable(obj) {
 }
 
 // returns [obj, release]
-function makeShareable(obj) { 
+function makeShareable(obj) {
   const toRelease = [];
 
   if (isShareable(obj)) {
@@ -50,8 +51,7 @@ function makeShareable(obj) {
 
     obj.id = sharedArray.id;
     obj.sharedArray = sharedArray;
-
-  } else if (typeof obj === 'object' && (!(obj instanceof Worklet))) {
+  } else if (typeof obj === 'object' && !(obj instanceof Worklet)) {
     obj = Object.assign({}, obj);
 
     for (let property in obj) {
@@ -63,7 +63,6 @@ function makeShareable(obj) {
     toRelease.push(() => {
       obj.release();
     });
-
   } else {
     let workletHolder = null;
     if (typeof obj === 'function' && obj.isWorklet == null) {
@@ -72,7 +71,7 @@ function makeShareable(obj) {
     }
     obj = SharedValue.create(obj);
     const release = obj.release.bind(obj);
-    toRelease.push(function(){
+    toRelease.push(function() {
       release();
       if (workletHolder != null) {
         workletHolder.release();
@@ -84,13 +83,12 @@ function makeShareable(obj) {
     for (let rel of toRelease) {
       rel();
     }
-  }
+  };
 
   return [obj, release];
 }
 
 function transformArgs(args) {
-
   const toRelease = [];
   for (let i = 0; i < args.length; i++) {
     const [sv, release] = makeShareable(args[i]);
@@ -114,52 +112,60 @@ function commonCode(body, args, createRes) {
     let argsCopy = [];
     if (args !== undefined) {
       if (Array.isArray(args)) {
-        argsCopy = (isShareable(args)) ? args : args.slice();
+        argsCopy = isShareable(args) ? args : args.slice();
       } else if (typeof args === 'object' && args !== null) {
         if (isShareable(args)) {
           argsCopy = [args];
         } else {
           // force object copy operation
-          argsCopy = [{ ...args, '__________reanimated_object_unreachable_field_name':0 }];
-          delete argsCopy[0]['__________reanimated_object_unreachable_field_name'];
+          argsCopy = [
+            { ...args, __________reanimated_object_unreachable_field_name: 0 },
+          ];
+          delete argsCopy[0][
+            '__________reanimated_object_unreachable_field_name'
+          ];
         }
       }
     }
     let shouldReleaseWorklet = false;
-    if (typeof body === "function") {
+    if (typeof body === 'function') {
       shouldReleaseWorklet = true;
       body = new Worklet(body);
     }
     const release = transformArgs(argsCopy);
-    let releaseApplierHolder = {get:() => {}};
+    let releaseApplierHolder = { get: () => {} };
 
     res.current = createRes(releaseApplierHolder, body, argsCopy);
 
     res.current.start = res.current;
     res.current.startMapping = res.current;
-    res.current.setListener = (fun) => { body.setListener(fun); };
+    res.current.setListener = fun => {
+      body.setListener(fun);
+    };
     res.current.isWorklet = true;
     res.current.body = body;
     res.current.args = argsCopy;
-    res.current.stop = () => { (releaseApplierHolder.get)() } ;
+    res.current.stop = () => {
+      releaseApplierHolder.get();
+    };
     return { shouldReleaseWorklet, releaseApplierHolder, release, body };
-  }
+  };
 
   if (res.current == null) {
-    releaseObj.current = init()
+    releaseObj.current = init();
   }
 
   useEffect(() => {
     return () => {
       if (!releaseObj.current) return;
       console.log('clear common code');
-      (releaseObj.current.releaseApplierHolder.get)();
+      releaseObj.current.releaseApplierHolder.get();
       releaseObj.current.release();
       if (releaseObj.current.shouldReleaseWorklet) {
         releaseObj.current.body.release();
       }
       res.current = null;
-    }
+    };
   }, []);
 
   return res.current;
@@ -192,7 +198,7 @@ export function useEventWorklet(body, args) {
 }
 
 export function useSharedValue(initial) {
-  console.log("useShared"); 
+  console.log('useShared');
   const sv = useRef(null);
   let release = () => {};
 
@@ -200,7 +206,7 @@ export function useSharedValue(initial) {
     console.log('init');
     [sv.current, release] = makeShareable(initial);
     return release;
-  }
+  };
 
   if (sv.current == null) {
     release = init();
@@ -210,24 +216,24 @@ export function useSharedValue(initial) {
     console.log('sharedValue useEffect');
 
     return () => {
-      if (sv.current) { 
+      if (sv.current) {
         release();
         sv.current = null;
       }
-      console.log("clear");
-    }
+      console.log('clear');
+    };
   }, []);
-  
+
   return sv.current;
 }
 
-const styleUpdater2 = new Worklet(function (input, output) {
+const styleUpdater2 = new Worklet(function(input, output) {
   'worklet';
   const newValues = input.body.apply(this, [input.input]);
   Reanimated.assign(output, newValues);
 });
 
-const styleUpdater3 = new Worklet(function (input, output, accessories) {
+const styleUpdater3 = new Worklet(function(input, output, accessories) {
   'worklet';
   const newValues = input.body.apply(this, [input.input, accessories]);
   Reanimated.assign(output, newValues);
@@ -245,9 +251,8 @@ function unwrap(obj) {
   const initialValue = obj.initialValue;
 
   if (typeof initialValue === 'object') {
-  
-    if (initialValue.isWorklet) { 
-      return {start:()=>{}, stop:()=>{}};
+    if (initialValue.isWorklet) {
+      return { start: () => {}, stop: () => {} };
     }
 
     if (initialValue.isFunction) {
@@ -261,10 +266,9 @@ function unwrap(obj) {
       }
       return res;
     }
+  }
 
-  } 
-
-  return { value:initialValue };
+  return { value: initialValue };
 }
 
 function copyAndUnwrap(obj) {
@@ -283,53 +287,198 @@ function copyAndUnwrap(obj) {
     if (typeof obj === 'object') {
       for (let propName of Object.keys(obj)) {
         obj[propName] = copyAndUnwrap(obj[propName]);
-      }  
+      }
     }
     return obj;
   }
 
   if (obj.initialValue.isObject) {
     const res = {};
-      for (let propName of initialValue.propNames) {
-        res[propName] = copyAndUnwrap(obj[propName]);
-      }
-      return res;
+    for (let propName of initialValue.propNames) {
+      res[propName] = copyAndUnwrap(obj[propName]);
+    }
+    return res;
   }
 
   // it has to be base shared type
   return obj.initialValue;
 }
 
-export function useAnimatedStyle(body, input, accessories) { // ToDo: it should execute only the first time
-  if (accessories != null) {
-    input = [input, accessories];
+function sanitize(style) {
+  const sanitized = {};
+  Object.keys(style).forEach(key => {
+    const value = style[key];
+    if (typeof value === 'object') {
+      if (value.value !== undefined) {
+        sanitized[key] = value.value;
+        return;
+      } else if (value.animation) {
+        // do nothing
+        return;
+      }
+    }
+    sanitized[key] = value;
+  });
+  return sanitized;
+}
+
+export function ReanimatedView(props) {
+  const animatedStyle = props.style.filter(
+    style => style.viewTag !== undefined
+  );
+  const processedStyle = props.style.map(style => {
+    if (style.viewTag) {
+      // animated
+      return style.eval();
+    } else {
+      return style;
+    }
+  });
+
+  const ref = useRef(null);
+  useEffect(() => {
+    const viewTag = findNodeHandle(ref.current);
+    animatedStyle.forEach(style => {
+      style.viewTag.set(viewTag);
+    });
+  }, [ref]);
+
+  return <View {...props} style={processedStyle} ref={ref} />;
+}
+
+const animationUpdater7 = new Worklet(function(viewTag, styleApplierId) {
+  'worklet';
+  const animations = Reanimated.container[styleApplierId.value].animations;
+  console.log('UPDATER ANIMATIONS ' + JSON.stringify(animations));
+  return true;
+});
+
+const styleUpdater7 = new Worklet(function(input, applierId) {
+  'worklet';
+  const memory = Reanimated.memory(this);
+  const animations = memory.animations || {};
+  const oldValues = memory.last || {};
+  const newValues = input.body(input.input);
+
+  function styleDiff(oldStyle, newStyle) {
+    const diff = {};
+    Object.keys(oldStyle).forEach(key => {
+      if (newStyle[key] === undefined) {
+        diff[key] = null;
+      }
+    });
+    Object.keys(newStyle).forEach(key => {
+      const value = newStyle[key];
+      const oldValue = oldStyle[key];
+
+      if (typeof value === 'object') {
+        if (value.value !== undefined) {
+          // shared value
+          if (oldValue !== value.value) {
+            diff[key] = value.value;
+          }
+          return;
+        } else if (value.animation) {
+          // animation
+          return;
+        }
+        diff[key] = value;
+        return;
+      }
+      if (oldValue !== value) {
+        diff[key] = value;
+        return;
+      }
+    });
+    return diff;
   }
 
+  function getLastValue(key, defaultValue) {
+    const value = oldValues[key];
+    if (value === undefined) {
+      return defaultValue;
+    }
+    if (typeof value === 'object') {
+      if (value.value !== undefined) {
+        return value.value;
+      }
+      if (value.animation !== undefined) {
+        return animations[key].current;
+      }
+    }
+    return value;
+  }
+
+  // extract animated props
+  let hasAnimations = false;
+  Object.keys(animations).forEach(key => {
+    const value = newValues[key];
+    if (typeof value === 'object' && value.animation) {
+      value;
+      // animation will be updated in the next step, we are here just
+      // to cancel removed animations
+    } else {
+      delete animations[key];
+    }
+  });
+  Object.keys(newValues).forEach(key => {
+    const value = newValues[key];
+    if (typeof value === 'object' && value.animation) {
+      animations[key] = {
+        animation: value.animation,
+        current: getLastValue(key, value.initial),
+        velocity: animations[key] ? animations[key].velocity : 0,
+        toValue: value.toValue,
+      };
+      hasAnimations = true;
+    }
+  });
+
+  if (hasAnimations) {
+    memory.animations = animations;
+    applierId.set(this.applierId);
+    input.animation.start();
+  } else {
+    input.animation.stop();
+    memory.animations = {};
+  }
+
+  // calculate diff
+  const diff = styleDiff(oldValues, newValues);
+  memory.last = Object.assign({}, oldValues, newValues);
+
+  if (Object.keys(diff).length !== 0) {
+    _updateProps(input.viewTag.value, diff);
+  }
+});
+
+export function useAnimatedStyle(body, input) {
+  const viewTag = useSharedValue(-1);
+  const sharedBody = useSharedValue(body);
   const sharedInput = useSharedValue(input);
   const mockInput = unwrap(sharedInput, true);
-  console.log("mockInput: " + JSON.stringify(mockInput));
-  const array = (Array.isArray(mockInput))? mockInput : [mockInput];
-  const pureOutput = body.apply({log:(e)=>{}},array);
-  console.log("pureoutput: " + JSON.stringify(pureOutput));
-  const unwrapedPureOutput  = copyAndUnwrap(pureOutput)
-  console.log("unwrapped: " + JSON.stringify(unwrapedPureOutput));
-  const output = useSharedValue(unwrapedPureOutput);
-  console.log("output: " + JSON.stringify(output));
-  const sharedBody = useSharedValue(body);
+  const wtf = useSharedValue(-1);
+  const animation = useWorklet(animationUpdater7, [viewTag, wtf]);
 
-  let realInput;
-  let mapper;
+  const mapper = useMapper(styleUpdater7, [
+    {
+      input: sharedInput,
+      viewTag,
+      body: sharedBody,
+      animation,
+    },
+    wtf,
+  ]);
 
-  if (Array.isArray(sharedInput)) {
-    realInput = { input: sharedInput[0], body: sharedBody};
-    mapper = useMapper(styleUpdater3, [realInput, output, sharedInput[1]]);
-  } else {
-    realInput = { input: sharedInput, body: sharedBody};
-    mapper = useMapper(styleUpdater2, [realInput, output]);
-  }
-  
-  useEffect(()=>{mapper.startMapping();},[]); //start animation 
-  return output;
+  useEffect(() => {
+    mapper.startMapping();
+  }, []);
+
+  return {
+    viewTag,
+    mapper,
+    eval: () => sanitize(body(mockInput)),
+  };
 }
 
 export function removeSharedObjsAndArrays(obj) {
@@ -344,13 +493,12 @@ export function removeSharedObjsAndArrays(obj) {
   if (typeof obj === 'object') {
     if (obj instanceof SharedValue) {
       if (obj.initialValue.isObject) {
-
         const res = {};
         for (let propName of obj.initialValue.propNames) {
           res[propName] = removeSharedObjsAndArrays(obj[propName]);
         }
         return res;
-      } 
+      }
       return obj;
     } else {
       let res = {};
@@ -365,17 +513,20 @@ export function removeSharedObjsAndArrays(obj) {
 }
 
 export function install(path, val) {
-  if (!['string', 'number', 'boolean', 'function'].includes(typeof val) && val !== undefined) {
+  if (
+    !['string', 'number', 'boolean', 'function'].includes(typeof val) &&
+    val !== undefined
+  ) {
     return;
   }
   if (typeof val === 'function') {
-    NativeModule.workletEval(path, `(${val.asString})`)
-    return
+    NativeModule.workletEval(path, `(${val.asString})`);
+    return;
   }
   if (val === undefined) {
-    val = '{}'
+    val = '{}';
   } else {
-    val = (typeof val === 'string') ? `"${val}"` : val.toString();
+    val = typeof val === 'string' ? `"${val}"` : val.toString();
   }
-  NativeModule.workletEval(path, val)
+  NativeModule.workletEval(path, val);
 }

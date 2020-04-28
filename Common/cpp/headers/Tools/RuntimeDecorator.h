@@ -13,9 +13,11 @@
 
 using namespace facebook;
 
+using UpdaterFunction = std::function<void(jsi::Runtime &rt, int viewTag, const jsi::Object& object)>;
+
 class RuntimeDecorator {
 public:
-  static void addNativeObjects(jsi::Runtime &rt);
+  static void addNativeObjects(jsi::Runtime &rt, UpdaterFunction updater);
 };
 
 #endif /* RuntimeDecorator_h */
