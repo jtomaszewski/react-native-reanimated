@@ -349,8 +349,29 @@ export function ReanimatedView(props) {
 const animationUpdater7 = new Worklet(function(viewTag, styleApplierId) {
   'worklet';
   const animations = Reanimated.container[styleApplierId.value].animations;
-  console.log('UPDATER ANIMATIONS ' + JSON.stringify(animations));
-  return true;
+  const updates = {};
+  let allFinished = true;
+  let haveUpdates = false;
+  Object.keys(animations).forEach(propKey => {
+    const animation = animations[propKey];
+    if (!animation.finished) {
+      const finished = animation.animation(animation);
+      updates[propKey] = animation.current;
+      haveUpdates = true;
+      if (!finished) {
+        allFinished = false;
+      } else {
+        animation.finished = true;
+      }
+    }
+  });
+  if (haveUpdates) {
+    _updateProps(viewTag.value, updates);
+  }
+  if (allFinished) {
+    console.log('FINISHED');
+  }
+  return allFinished;
 });
 
 const styleUpdater7 = new Worklet(function(input, applierId) {
@@ -393,10 +414,10 @@ const styleUpdater7 = new Worklet(function(input, applierId) {
     return diff;
   }
 
-  function getLastValue(key, defaultValue) {
+  function getLastValue(key) {
     const value = oldValues[key];
     if (value === undefined) {
-      return defaultValue;
+      return undefined;
     }
     if (typeof value === 'object') {
       if (value.value !== undefined) {
@@ -424,12 +445,10 @@ const styleUpdater7 = new Worklet(function(input, applierId) {
   Object.keys(newValues).forEach(key => {
     const value = newValues[key];
     if (typeof value === 'object' && value.animation) {
-      animations[key] = {
-        animation: value.animation,
-        current: getLastValue(key, value.initial),
-        velocity: animations[key] ? animations[key].velocity : 0,
-        toValue: value.toValue,
-      };
+      // console.log('VVV ' + JSON.stringify(value));
+      value.current = getLastValue(key) || value.current;
+      value.velocity = animations[key] ? animations[key].velocity : 0;
+      animations[key] = value;
       hasAnimations = true;
     }
   });

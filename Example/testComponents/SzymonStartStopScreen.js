@@ -17,13 +17,8 @@ export default function RotatingSquare(props) {
       'worklet';
       const { wat } = input;
 
-      // _updateProps(3, { opacity: 0.5 });
       return {
-        opacity: {
-          initial: 0,
-          animation: 'spring',
-          toValue: wat.value / 500,
-        },
+        opacity: Reanimated.withSpring(wat.value, 0),
       };
 
       return {
@@ -51,7 +46,7 @@ export default function RotatingSquare(props) {
           style,
         ]}
       />
-      <Button title="toggle" onPress={() => wat.set(300)} />
+      <Button title="toggle" onPress={() => wat.set(Math.random())} />
     </View>
   );
 }
