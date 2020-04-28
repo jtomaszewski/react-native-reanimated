@@ -31,8 +31,6 @@ export function installFunctions(innerNativeModule) {
   install('Reanimated.withSpring', function(toValue, from = 0) {
     'worklet';
 
-    console.log('ACTUALLY WITH SPRING');
-
     const config = {
       damping: 10,
       mass: 1,
@@ -43,7 +41,7 @@ export function installFunctions(innerNativeModule) {
     };
 
     function spring(animation) {
-      const { time, current, toValue, velocity } = animation;
+      const { time, current, velocity } = animation;
 
       const now = Date.now();
       const deltaTime = Math.min(now - time, 64);
@@ -120,7 +118,6 @@ export function installFunctions(innerNativeModule) {
 
     return {
       animation: spring,
-      toValue,
       velocity: 0,
       time: Date.now(),
       current: from,
@@ -128,7 +125,6 @@ export function installFunctions(innerNativeModule) {
     };
   });
   global.Reanimated.withSpring = (toValue, from = 0) => {
-    console.log('WTF!!!!');
     return from;
   };
 

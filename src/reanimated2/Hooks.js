@@ -368,9 +368,6 @@ const animationUpdater7 = new Worklet(function(viewTag, styleApplierId) {
   if (haveUpdates) {
     _updateProps(viewTag.value, updates);
   }
-  if (allFinished) {
-    console.log('FINISHED');
-  }
   return allFinished;
 });
 
